@@ -11,33 +11,39 @@ RPM:1234.56, Fric_X(g):0.123, Fatg_X(mm/s):0.456, Fric_Y(g):0.123,
 Fatg_Y(mm/s):0.456, Fric_Z(g):0.123, Fatg_Z(mm/s):0.456
 """
 
+from pylogix import PLC
 import re
 import time
-import serial
+#import serial
 
 from google.cloud import aiplatform
 
 # ---- CONFIG ----
-SERIAL_PORT = "/dev/ttyACM0"   # Windows: e.g. "COM3"
-BAUD_RATE = 115200             # must match Serial.begin() in the sketch
+#BAUD_RATE = 115200             # must match Serial.begin() in the sketch
 SAMPLE_INTERVAL_SEC = 1.0      # only feed the model once per second
 
 PROJECT = "ai4i-dataset"
 LOCATION = "us-west2"
-ENDPOINT_ID = "projects/ai4i-dataset/locations/us-west2/endpoints/2776550534134366208"
+ENDPOINT_ID = "projects/ai4i-dataset/locations/us-west2/endpoints/6834962301464870912"
 
 CONSECUTIVE_ERROR_THRESHOLD = 5
 
+PLC_IP = "192.168.82.231"
+A_RMS_TAG = (
+    "Program:VibrationSensor_1."
+    "VVB_VibrationSensor_1.A_RMS"
+)
+
+V_RMS_TAG = "VVB_V_RMS_Python"
+
 # Sensor fields the Arduino sends, in the order the model expects them.
 SENSOR_COLUMNS = [
-    "RPM",
-    "Fric_X(g)",
-    "Fatg_X(mm/s)",
-    "Fric_Y(g)",
-    "Fatg_Y(mm/s)",
-    "Fric_Z(g)",
-    "Fatg_Z(mm/s)",
+    "v-RMS",
+    "a-RMS",
+    "revolution",
 ]
+
+
 
 # Matches "Label:value" pairs, e.g. "Fric_X(g):0.123"
 PATTERN = re.compile(r"([A-Za-z_]+(?:\([^)]*\))?):(-?\d+\.?\d*)")
@@ -60,7 +66,6 @@ def parse_line(line):
 
     return data
 
-
 def predict(endpoint, data):
     """Send one sensor reading to the model and return the prediction."""
     instance = [data[col] for col in SENSOR_COLUMNS]
@@ -72,15 +77,26 @@ def main():
     aiplatform.init(project=PROJECT, location=LOCATION)
     endpoint = aiplatform.Endpoint(ENDPOINT_ID)
 
-    ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
-    time.sleep(2)  # allow Arduino to reset after opening the port
+    #ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
+    #time.sleep(2)  # allow Arduino to reset after opening the port
 
     consecutive_errors = 0
     last_sample_time = 0.0
 
-    print("Monitoring machine. Press Ctrl+C to stop.")
+    try:
+        with PLC() as comm:
+            comm.IPAddress = PLC_IP
+            comm.SocketTimeout = 5
+
+            print("Connected to PLC:", PLC_IP)
+            print("Collecting vibration data...")
+            print("Press Ctrl+C to stop.\n")
+    except KeyboardInterrupt:
+        print("\nData collection stopped.")
+
     try:
         while True:
+            """
             raw = ser.readline().decode("utf-8", errors="ignore").strip()
             if not raw:
                 continue
@@ -89,6 +105,22 @@ def main():
             if data is None:
                 # Incomplete/garbled line (e.g. mid-transmission) - skip it
                 continue
+            """
+            data = {}
+
+            a_RMS = comm.Read(A_RMS_TAG);
+            v_RMS = comm.Read(V_RMS_TAG);
+            revolution = "";
+            #revolution tag still needs to be made
+
+            if (
+                    a_RMS.Status == "Success"
+                    and v_RMS.Status == "Success"
+                ):
+                    data["a-RMS"] = a_RMS.Value;
+                    data["v-RMS"] = v_RMS.Value;
+                    #revolution tag still needs to be made
+                    data["revolution"] = "";
 
             now = time.time()
             if now - last_sample_time < SAMPLE_INTERVAL_SEC:
