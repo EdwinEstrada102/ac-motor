@@ -1,3 +1,4 @@
+
 #include <ArduinoRS485.h>
 
 // ==========================================
@@ -46,7 +47,7 @@ void loop() {
   // ==========================================
   // 1. CALCULATE RPM
   // ==========================================
-  noInterrupts();
+  /*noInterrupts();
   unsigned long interval = pulseInterval;
   unsigned long lastPulse = lastPulseTime;
   interrupts();
@@ -89,7 +90,7 @@ void loop() {
 
     Serial.print(", Fric_Z(g):"); Serial.print(frictionZ, 3);
     Serial.println(", Fatg_Z(mm/s):"); Serial.println(fatigueZ, 3);
-  }
+  }*/
 }
 
 // ==========================================
@@ -130,6 +131,19 @@ int readModbusResponse(byte *buffer, int maxLen, unsigned long timeoutMs) {
   }
 
   RS485.noReceive();
+
+  // --- added: print whatever came back ---
+  Serial.print("readModbusResponse: got ");
+  Serial.print(count);
+  Serial.print(" bytes: ");
+  for (int i = 0; i < count; i++) {
+    if (buffer[i] < 0x10) Serial.print('0');
+    Serial.print(buffer[i], HEX);
+    Serial.print(' ');
+  }
+  Serial.println();
+  // --- end added ---
+
   return count;
 }
 
@@ -230,6 +244,8 @@ void setVFDFrequency(float freqHz) {
 
   byte response[8];
   readModbusResponse(response, 8, 50);
+
+  readVFDFrequency();
 }
 
 // Writes control word 0x2000 to command the VFD to run/stop.

@@ -36,6 +36,11 @@ A_RMS_TAG = (
 
 V_RMS_TAG = "VVB_V_RMS_Python"
 
+RPM_TAG = (
+"AL1322_IO_Link_Master_Smart_Sensors_3:"
+"I1.Data[191]"
+)
+
 # Sensor fields the Arduino sends, in the order the model expects them.
 SENSOR_COLUMNS = [
     "v-RMS",
@@ -110,17 +115,16 @@ def main():
 
             a_RMS = comm.Read(A_RMS_TAG);
             v_RMS = comm.Read(V_RMS_TAG);
-            revolution = "";
-            #revolution tag still needs to be made
+            revolution = comm.Read(RPM_TAG);
 
             if (
                     a_RMS.Status == "Success"
                     and v_RMS.Status == "Success"
+                    and revolution == "Success"
                 ):
                     data["a-RMS"] = a_RMS.Value;
                     data["v-RMS"] = v_RMS.Value;
-                    #revolution tag still needs to be made
-                    data["revolution"] = "";
+                    data["revolution"] = revolution.Value;
 
             now = time.time()
             if now - last_sample_time < SAMPLE_INTERVAL_SEC:
