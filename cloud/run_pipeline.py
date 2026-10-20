@@ -7,30 +7,30 @@ aiplatform.init(
 )
 
 job = aiplatform.CustomTrainingJob(
-    display_name='motor-vibration-isoforest',
+    display_name='lab-motor-isoforest',
     script_path='trainer/task.py',
     container_uri='us-docker.pkg.dev/vertex-ai/training/sklearn-cpu.1-0:latest',
     requirements=['google-cloud-storage', 'gcsfs', 'joblib==1.1.1'],
 )
 
 job.run(
-    args=['--data-path', 'gs://normal-op-motor-data/vibration_log.csv',
-          '--model-dir', 'gs://normal-op-motor-data/models/motor-vibration/v1',
+    args=['--data-path', 'gs://normal-op-motor-data/lab_motor_data.csv',
+          '--model-dir', 'gs://normal-op-motor-data/models/lab-motor-model/v1',
           '--contamination', '0.02'],
     replica_count=1,
     machine_type='n1-standard-4',
 )
 
 model = aiplatform.Model.upload(
-    display_name='motor-vibration-isoforest',
-    artifact_uri='gs://normal-op-motor-data/models/motor-vibration/v1',
+    display_name='lab-motor-isoforest',
+    artifact_uri='gs://normal-op-motor-data/models/lab-motor-model/v1',
     serving_container_image_uri='us-docker.pkg.dev/vertex-ai/prediction/sklearn-cpu.1-0:latest',
 )
 
-endpoint = aiplatform.Endpoint.create(display_name='motor-vibration-endpoint')
+endpoint = aiplatform.Endpoint.create(display_name='lab-motor-endpoint')
 endpoint.deploy(
     model=model, 
-    deployed_model_display_name='motor-vibration-v1',
+    deployed_model_display_name='lab-motor-detection',
     machine_type='n1-standard-2', 
     min_replica_count=1, 
     max_replica_count=3

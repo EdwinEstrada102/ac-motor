@@ -15,7 +15,7 @@ import sklearn, joblib as jl
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--data-path', type=str, required=True,
-                         help='GCS path to training CSV, e.g. gs://bucket/data.csv')
+                         help='GCS path to training CSV, e.g. gs://bucket/lab_motor_data.csv')
     parser.add_argument('--model-dir', type=str, required=True,
                          help='GCS path to save the trained model, e.g. gs://bucket/models/v1')
     parser.add_argument('--contamination', type=float, default=0.02,
@@ -32,7 +32,7 @@ def load_data(data_path: str) -> pd.DataFrame:
 
 
 def train_model(df: pd.DataFrame, contamination: float, n_estimators: int) -> IsolationForest:
-    feature_cols = ['RPM', 'Fric_X(g)', 'Fatg_X(mm/s)', 'Fric_Y(g)', 'Fatg_Y(mm/s)', 'Fric_Z(g)', 'Fatg_Z(mm/s)']
+    feature_cols = ['v-RMS', 'a-RMS', 'revolution']
     X = df[feature_cols]
 
     model = IsolationForest(
